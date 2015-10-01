@@ -171,6 +171,8 @@ class Index extends \Magento\Framework\App\Action\Action
                 if ($order->canUnhold()) $order->unhold()->save();
                 break;
             case "cancel":
+                // Can't cancel if order is on hold
+                if ($order->canUnhold()) $order = $order->unhold();
                 if ($order->canCancel()) $order->cancel()->save();
                 break;
         }
