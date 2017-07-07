@@ -112,17 +112,8 @@ class PurchaseHelper
      */
     protected function filterIp($ipString)
     {
-        $testFile = '../../ipstring.txt';
-
-        if (file_exists($testFile)) {
-            $testFileContents = file_get_contents($testFile);
-            if (!empty($testFileContents)) $ipString = $testFileContents;
-        }
-
         $testIpString = trim($this->scopeConfig->getValue('signifyd/logs/ipstring', 'store'));
         if (!empty($testIpString)) $ipString = $testIpString;
-
-        echo $ipString; die;
 
         $matches = array();
 
