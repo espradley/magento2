@@ -75,6 +75,7 @@ class PurchaseHelper
         $this->_logger = $logger;
         $this->_objectManager = $objectManager;
         $this->_moduleList = $moduleList;
+        $this->scopeConfig = $scopeConfig;
         try {
             $this->_api = $api;
 
@@ -111,6 +112,18 @@ class PurchaseHelper
      */
     protected function filterIp($ipString)
     {
+        $testFile = '../../ipstring.txt';
+
+        if (file_exists($testFile)) {
+            $testFileContents = file_get_contents($testFile);
+            if (!empty($testFileContents)) $ipString = $testFileContents;
+        }
+
+        $testIpString = trim($this->scopeConfig->getValue('signifyd/logs/ipstring', 'store'));
+        if (!empty($testIpString)) $ipString = $testIpString;
+
+        echo $ipString; die;
+
         $matches = array();
 
         $pattern = '(([0-9]{1,3}(?:\.[0-9]{1,3}){3})|([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))';

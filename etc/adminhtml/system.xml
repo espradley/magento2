@@ -91,6 +91,10 @@
                     <comment>Enables logging of errors related to the plugin for debugging and troubleshooting issues.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
+                <field id="ipstring" translate="label comment" type="text" sortOrder="1000" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>IP String (tests purpose only)</label>
+                    <comment><![CDATA[It will be removed from the final version.<br />This will overwrite the IP string provided by server]]></comment>
+                </field>
             </group>
         </section>
     </system>
