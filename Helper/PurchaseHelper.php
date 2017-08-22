@@ -25,6 +25,7 @@ use Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
 use Magento\Framework\App\ProductMetadata;
 use Magento\Customer\Model\Customer;
 use Magento\Sales\Model\ResourceModel\Order\Collection as OrderCollection;
+use Signifyd\Connect\Model\Casedata;
 
 /**
  * Class PurchaseHelper

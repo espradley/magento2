@@ -83,25 +83,18 @@ class Index extends Action
     }
 
     // NOTE: Magento may deprecate responses in the future in favor of results.
-    /**
-     *
-     */
     protected function Result200()
     {
         $this->getResponse()->setStatusCode(Http::STATUS_CODE_200);
     }
 
-    /**
-     *
-     */
+
     protected function Result400()
     {
         $this->getResponse()->setStatusCode(Http::STATUS_CODE_400);
     }
 
-    /**
-     *
-     */
+
     protected function Result403()
     {
         $this->getResponse()->setStatusCode(Http::STATUS_CODE_403);
@@ -134,7 +127,7 @@ class Index extends Action
         /** @var $order \Magento\Sales\Model\Order */
         $order = $this->_order->loadByIncrementId($request->orderId);
 
-        $this->_caseData->load($request->orderId);
+        $case = $this->_caseData->load($request->orderId);
 
         return array(
             "case" => $case,
