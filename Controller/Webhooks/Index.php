@@ -14,7 +14,6 @@ use Magento\Sales\Model\Order;
 use Signifyd\Connect\Helper\SignifydAPIMagento;
 use Signifyd\Connect\Helper\LogHelper;
 use Signifyd\Connect\Model\Casedata;
-use Signifyd\Connect\Model\CaseRetry;
 
 /**
  * Controller action for handling webhook posts from Signifyd service
@@ -47,37 +46,62 @@ class Index extends Action
     protected $_dateTime;
 
     /**
+     * @var \Signifyd\Connect\Model\Casedata
+     */
+    protected $_caseData;
+
+    /**
+     * @var \Magento\Sales\Model\Order
+     */
+    protected $_order;
+
+    /**
      * @param Context $context
      * @param ScopeConfigInterface $scopeConfig
      * @param DateTime $dateTime
      * @param LogHelper $logger
      * @param SignifydAPIMagento $api
+     * @param Casedata $caseDataObj
+     * @param Order $order
      */
     public function __construct(
         Context $context,
         ScopeConfigInterface $scopeConfig,
         DateTime $dateTime,
         LogHelper $logger,
-        SignifydAPIMagento $api
+        SignifydAPIMagento $api,
+        Casedata $caseDataObj,
+        Order $order
     ) {
         parent::__construct($context);
         $this->_coreConfig = $scopeConfig;
         $this->_logger = $logger;
         $this->_objectManager = $context->getObjectManager();
         $this->_api = $api;
+        $this->_caseDataObj = $caseDataObj;
+        $this->_order = $order;
     }
 
     // NOTE: Magento may deprecate responses in the future in favor of results.
+    /**
+     *
+     */
     protected function Result200()
     {
         $this->getResponse()->setStatusCode(Http::STATUS_CODE_200);
     }
 
+    /**
+     *
+     */
     protected function Result400()
     {
         $this->getResponse()->setStatusCode(Http::STATUS_CODE_400);
     }
 
+    /**
+     *
+     */
     protected function Result403()
     {
         $this->getResponse()->setStatusCode(Http::STATUS_CODE_403);
@@ -108,10 +132,10 @@ class Index extends Action
     protected function initRequest($request)
     {
         /** @var $order \Magento\Sales\Model\Order */
-        $order = $this->_objectManager->create('Magento\Sales\Model\Order')->loadByIncrementId($request->orderId);
-        /** @var $case \Signifyd\Connect\Model\Casedata */
-        $case = $this->_objectManager->create('Signifyd\Connect\Model\Casedata');
-        $case->load($request->orderId);
+        $order = $this->_order->loadByIncrementId($request->orderId);
+
+        $this->_caseData->load($request->orderId);
+
         return array(
             "case" => $case,
             "order" => $order,
@@ -119,6 +143,9 @@ class Index extends Action
         );
     }
 
+    /**
+     *
+     */
     public function execute()
     {
         if (!$this->_api->enabled()) {
@@ -149,8 +176,7 @@ class Index extends Action
 
             $request = json_decode($rawRequest);
             $caseData = $this->initRequest($request);
-            $caseObj = $this->_objectManager->create('Signifyd\Connect\Model\Casedata');
-            $caseObj->updateCase($caseData);
+            $this->_caseDataObj->updateCase($caseData);
             $this->Result200();
             return;
         } else {

@@ -7,13 +7,11 @@
 namespace Signifyd\Connect\Helper;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Framework\AppInterface;
 use Magento\Framework\Module\ModuleListInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Address;
 use \Magento\Framework\ObjectManagerInterface;
 use Magento\Sales\Model\Order\Item;
-use Signifyd\Connect\Model\CaseRetry;
 use Signifyd\Core\SignifydModel;
 use Signifyd\Models\Address as SignifydAddress;
 use Signifyd\Models\Card;
@@ -23,6 +21,10 @@ use Signifyd\Models\Purchase;
 use Signifyd\Models\Recipient;
 use Signifyd\Models\UserAccount;
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
+use Magento\Framework\App\ProductMetadata;
+use Magento\Customer\Model\Customer;
+use Magento\Sales\Model\ResourceModel\Order\Collection as OrderCollection;
 
 /**
  * Class PurchaseHelper
@@ -42,27 +44,53 @@ class PurchaseHelper
     protected $_api;
 
     /**
-     * @var \Magento\Framework\ObjectManagerInterface
-     */
-    protected $_objectManager;
-
-    /**
      * @var DateTime
      */
     protected $_dateTime;
 
     /**
-     * @var Magento\Framework\Module\ModuleListInterface
+     * @var \Magento\Framework\Module\ModuleListInterface
      */
     protected $_moduleList;
 
     /**
+     * @var \Magento\Framework\HTTP\PhpEnvironment\RemoteAddress
+     */
+    protected $_remoteAddress;
+
+    /**
+     * @var
+     */
+    protected $_protectedMetadata;
+
+    /**
+     * @var Customer
+     */
+    protected $_customer;
+
+    /**
+     * @var Casedata
+     */
+    protected $_caseData;
+
+    /**
+     * @var OrderCollection
+     */
+    protected $_orderCollection;
+
+    /**
+     * PurchaseHelper constructor.
      * @param ObjectManagerInterface $objectManager
      * @param LogHelper $logger
      * @param DateTime $dateTime
      * @param ScopeConfigInterface $scopeConfig
      * @param SignifydAPIMagento $api
      * @param ModuleListInterface $moduleList
+     * @param RemoteAddress $remoteAddress
+     * @param ProductMetadata $productMetadata
+     * @param Customer $customer
+     * @param OrderCollection $orderCollection
+     * @param Casedata $caseData
      */
     public function __construct(
         ObjectManagerInterface $objectManager,
@@ -70,11 +98,21 @@ class PurchaseHelper
         DateTime $dateTime,
         ScopeConfigInterface $scopeConfig,
         SignifydAPIMagento $api,
-        ModuleListInterface $moduleList
+        ModuleListInterface $moduleList,
+        RemoteAddress $remoteAddress,
+        ProductMetadata $productMetadata,
+        Customer $customer,
+        OrderCollection $orderCollection,
+        Casedata $caseData
     ) {
         $this->_logger = $logger;
         $this->_objectManager = $objectManager;
         $this->_moduleList = $moduleList;
+        $this->_remoteAddress = $remoteAddress;
+        $this->_productMetadata = $productMetadata;
+        $this->_customer = $customer;
+        $this->_orderCollection = $orderCollection;
+        $this->_caseData = $caseData;
         try {
             $this->_api = $api;
 
@@ -99,9 +137,7 @@ class PurchaseHelper
             return $this->filterIp($order->getRemoteIp());
         }
 
-        /** @var $case \Magento\Framework\HTTP\PhpEnvironment\RemoteAddress */
-        $remoteAddressHelper = $this->_objectManager->get('Magento\Framework\HTTP\PhpEnvironment\RemoteAddress');
-        return $this->filterIp($remoteAddressHelper->getRemoteAddress());
+        return $this->filterIp($this->_remoteAddress->getRemoteAddress());
     }
 
     /**
@@ -129,8 +165,7 @@ class PurchaseHelper
     protected function getVersions()
     {
         $version = array();
-        $productMetadata = $this->_objectManager->get('\Magento\Framework\App\ProductMetadata');
-        $version['storePlatformVersion'] = $productMetadata->getVersion();
+        $version['storePlatformVersion'] = $this->_productMetadata->getVersion();
         $version['signifydClientApp'] = 'Magento 2';
         $version['storePlatform'] = 'Magento 2';
         $version['signifydClientAppVersion'] = (string)($this->_moduleList->getOne('Signifyd_Connect')['setup_version']);
@@ -271,19 +306,18 @@ class PurchaseHelper
         $user->accountNumber = $order->getCustomerId();
         $user->phone = $order->getBillingAddress()->getTelephone();
 
-        /* @var $customer \Magento\Customer\Model\Customer */
-        $customer = $this->_objectManager->get('Magento\Customer\Model\Customer')->load($order->getCustomerId());
+
+        $customer = $this->_customerload($order->getCustomerId());
         $this->_logger->debug("Customer data: " . json_encode($customer));
         if(!is_null($customer) && !$customer->isEmpty()) {
             $user->createdDate = date('c', strtotime($customer->getCreatedAt()));
         }
-        /** @var $orderFactory \Magento\Sales\Model\ResourceModel\Order\Collection */
-        $orders = $this->_objectManager->get('\Magento\Sales\Model\ResourceModel\Order\Collection');
-        $orders->addFieldToFilter('customer_id', $order->getCustomerId());
-        $orders->load();
+
+        $orders = $this->orderCollection->addFieldToFilter('customer_id', $order->getCustomerId())->load();
 
         $orderCount = 0;
         $orderTotal = 0.0;
+
         /** @var $o \Magento\Sales\Model\Order*/
         foreach($orders as $o) {
             $orderCount++;
@@ -303,10 +337,7 @@ class PurchaseHelper
      */
     public function getCase(Order $order)
     {
-        /** @var $case \Signifyd\Connect\Model\Casedata */
-        $case = $this->_objectManager->get('Signifyd\Connect\Model\Casedata');
-        $case->load($order->getIncrementId());
-        return $case;
+        return $this->_caseDataObj->load($order->getIncrementId());
     }
 
     /**
@@ -344,9 +375,7 @@ class PurchaseHelper
      */
     public function createNewCase($order)
     {
-        /** @var $case \Signifyd\Connect\Model\Casedata */
-        $case = $this->_objectManager->create('Signifyd\Connect\Model\Casedata');
-        $case->setId($order->getIncrementId())
+        $case = $this->_caseData->setId($order->getIncrementId())
             ->setSignifydStatus("PENDING")
             ->setCreated(strftime('%Y-%m-%d %H:%M:%S', time()))
             ->setUpdated(strftime('%Y-%m-%d %H:%M:%S', time()))

@@ -9,7 +9,6 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 use Magento\Sales\Controller\Adminhtml\Order\AbstractMassAction;
-use Magento\Sales\Model\Order;
 use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
 use Magento\Ui\Component\MassAction\Filter;
 use Signifyd\Connect\Helper\PurchaseHelper;
@@ -31,10 +30,6 @@ class Send extends AbstractMassAction
      */
     protected $_logger;
 
-    /**
-     * @var \Magento\Framework\ObjectManagerInterface
-     */
-    protected $_objectManager;
 
     /**
      * @var SignifydAPIMagento

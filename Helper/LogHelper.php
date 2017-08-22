@@ -7,7 +7,6 @@
 namespace Signifyd\Connect\Helper;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Psr\Log\LoggerInterface;
 
 /**
  * Class LogHelper

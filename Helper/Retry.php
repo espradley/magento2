@@ -8,26 +8,42 @@ namespace Signifyd\Connect\Helper;
 
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
-use Magento\Framework\ObjectManagerInterface;
 use Signifyd\Connect\Model\Casedata;
 
+/**
+ * Class Retry
+ * @package Signifyd\Connect\Helper
+ */
 class Retry extends AbstractHelper
 {
+    /**
+     * @var
+     */
     protected $caseData;
+    /**
+     * @var SignifydAPIMagento
+     */
     protected $api;
-    protected $objectManager;
+    /**
+     * @var Casedata
+     */
+    protected $_caseData;
 
+    /**
+     * Retry constructor.
+     * @param Context $context
+     * @param Casedata $caseData
+     * @param SignifydAPIMagento $api
+     */
     public function __construct(
         Context $context,
         Casedata $caseData,
-        SignifydAPIMagento $api,
-        ObjectManagerInterface $objectManager
+        SignifydAPIMagento $api
     )
     {
         parent::__construct($context);
-        $this->caseData = $caseData;
+        $this->_caseData = $caseData;
         $this->api = $api;
-        $this->objectManager = $objectManager;
     }
 
     /**
@@ -42,7 +58,7 @@ class Retry extends AbstractHelper
         $from = date('Y-m-d H:i:s', $lastTime);
         $to = date('Y-m-d H:i:s', $firstTime);
 
-        $casesCollection = $this->caseData->getCollection();
+        $casesCollection = $this->_caseData->getCollection();
         $casesCollection->addFieldToFilter('updated', array('from' => $from, 'to' => $to));
         $casesCollection->addFieldToFilter('magento_status', array('eq' => $status));
 
@@ -61,8 +77,7 @@ class Retry extends AbstractHelper
             $caseData['request'] = $this->api->getCase($case->getCode());
             $caseData['case'] = $case;
             $caseData['order'] = $order;
-            $caseObj = $this->objectManager->create('Signifyd\Connect\Model\Casedata');
-            $caseObj->updateCase($caseData);
+            $this->_caseData->updateCase($caseData);
             return true;
         } catch (\Exception $e) {
             $this->_logger->critical($e->__toString());
@@ -89,8 +104,8 @@ class Retry extends AbstractHelper
             }
         }
         $caseData = array('order' => $order);
-        $caseObj = $this->objectManager->create('Signifyd\Connect\Model\Casedata');
-        $result = $caseObj->updateOrder($caseData, $orderAction, $case);
+
+        $result = $this->caseData->updateOrder($caseData, $orderAction, $case);
         return $result;
     }
 }
